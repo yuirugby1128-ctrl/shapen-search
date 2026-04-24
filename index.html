@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHARPEN SEARCH - プロ仕様検索DB</title>
+    <title>SHARPEN SEARCH - 画像・アーカイブ対応DB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; }
         .amazon-border { border: 1px solid #ddd; }
         .color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; margin-right: 4px; vertical-align: middle; }
-        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; overflow-y: auto; }
+        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; align-items: center; justify-content: center; overflow-y: auto; }
+        .product-img { object-fit: contain; background: white; }
     </style>
 </head>
 <body class="bg-white text-gray-900 pb-20">
@@ -18,105 +19,107 @@
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <h1 class="text-xl font-black tracking-tighter shrink-0 cursor-pointer" onclick="location.reload()">SHARPEN SEARCH</h1>
             <div class="flex-grow max-w-2xl">
-                <input type="text" id="searchInput" placeholder="製品名、メーカー、タグ、色で検索..." 
+                <input type="text" id="searchInput" placeholder="製品名、メーカー、記念モデル名で検索..." 
                        class="w-full border border-gray-400 p-2 rounded shadow-sm focus:outline-none focus:border-black text-sm">
             </div>
-            <div class="hidden md:block text-[10px] text-gray-400 text-right uppercase">
-                Automatic Scanning...<br><span id="lastUpdate"></span>
+            <div class="hidden md:block text-[10px] text-gray-400 text-right uppercase font-mono">
+                System Online<br><span id="lastUpdate"></span>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto flex flex-col md:flex-row p-4 gap-6">
         <aside class="w-full md:w-64 flex-shrink-0">
-            <h2 class="font-bold mb-4 border-b pb-2 text-sm">絞り込み検索</h2>
-            <div class="mb-6 space-y-6">
+            <h2 class="font-bold mb-4 border-b pb-2 text-sm uppercase">Archive Filters</h2>
+            <div class="space-y-6">
                 <div>
-                    <h3 class="text-xs font-bold mb-2 text-gray-400 uppercase">芯径</h3>
-                    <div id="filter-diameter" class="grid grid-cols-2 gap-1">
-                        <label class="text-sm cursor-pointer"><input type="checkbox" value="0.2" class="filter-check"> 0.2</label>
-                        <label class="text-sm cursor-pointer"><input type="checkbox" value="0.3" class="filter-check"> 0.3</label>
-                        <label class="text-sm cursor-pointer"><input type="checkbox" value="0.5" class="filter-check"> 0.5</label>
-                        <label class="text-sm cursor-pointer"><input type="checkbox" value="0.7" class="filter-check"> 0.7</label>
-                        <label class="text-sm cursor-pointer"><input type="checkbox" value="0.9" class="filter-check"> 0.9</label>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-xs font-bold mb-2 text-gray-400 uppercase">素材・特徴</h3>
-                    <div id="filter-material" class="space-y-1">
-                        <label class="block text-sm cursor-pointer"><input type="checkbox" value="木軸" class="filter-check"> 木軸</label>
-                        <label class="block text-sm cursor-pointer"><input type="checkbox" value="金属" class="filter-check"> 金属</label>
-                        <label class="block text-sm cursor-pointer"><input type="checkbox" value="樹脂" class="filter-check"> 樹脂・プラスチック</label>
-                        <label class="block text-sm cursor-pointer"><input type="checkbox" value="限定" class="filter-check"> 限定・コラボモデル</label>
+                    <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2">Category</h3>
+                    <div class="space-y-1 text-sm">
+                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="定番" class="filter-check"> 定番モデル</label>
+                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="限定" class="filter-check"> 限定・記念モデル</label>
+                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="コラボ" class="filter-check"> コラボレーション</label>
                     </div>
                 </div>
             </div>
         </aside>
 
         <section class="flex-grow">
-            <div class="mb-6 p-4 bg-gray-50 border border-black rounded-sm">
-                <h2 class="font-bold text-xs mb-3 border-b border-gray-300 pb-1 flex justify-between items-center">
-                    <span>【最新情報探知エンジン】</span>
-                    <span class="text-[10px] text-red-600 animate-pulse">● LIVE</span>
+            <div class="mb-6 p-4 bg-gray-50 border border-black rounded-sm shadow-sm">
+                <h2 class="font-bold text-xs mb-3 border-b border-gray-300 pb-1 flex justify-between items-center italic">
+                    <span>LATEST NEWS / COLLABORATION</span>
+                    <span class="text-red-600 animate-pulse font-mono text-[10px]">● LIVE SENSOR</span>
                 </h2>
-                <ul id="newsList" class="text-xs space-y-3">
-                    </ul>
+                <ul id="newsList" class="text-xs space-y-3"></ul>
             </div>
 
-            <div id="resultCount" class="text-[10px] mb-4 text-gray-400 font-bold uppercase tracking-widest border-b">Searching...</div>
-            <div id="productList" class="grid grid-cols-1 gap-3"></div>
+            <div id="resultCount" class="text-[10px] mb-4 text-gray-400 font-bold uppercase tracking-[0.2em]">Searching...</div>
+            <div id="productList" class="grid grid-cols-1 gap-4"></div>
         </section>
     </main>
 
     <div id="detailModal" onclick="closeModal()">
-        <div class="bg-white p-8 max-w-2xl w-11/12 rounded-sm shadow-2xl relative my-10" onclick="event.stopPropagation()">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-2xl hover:text-gray-500">&times;</button>
-            <div id="modalContent"></div>
+        <div class="bg-white p-6 md:p-10 max-w-4xl w-11/12 rounded-sm shadow-2xl relative my-10" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-3xl hover:opacity-50">&times;</button>
+            <div id="modalContent" class="flex flex-col md:flex-row gap-8"></div>
         </div>
     </div>
 
-    <footer class="border-t border-gray-300 mt-20 p-10 bg-white text-center">
-        <div id="sharpAI" class="max-w-xl mx-auto p-6 border border-gray-200 rounded hover:border-black transition cursor-help">
-            <p class="font-bold text-sm mb-1">🤖 シャープAI</p>
-            <p class="text-[10px] text-gray-500 leading-relaxed uppercase">Analyzing global stationery trends. Sharp AI is learning from your database.</p>
+    <footer class="border-t border-gray-200 mt-20 p-12 bg-white text-center">
+        <div id="sharpAI" class="max-w-xl mx-auto p-6 border border-black hover:bg-black hover:text-white transition-all cursor-help">
+            <p class="font-bold text-sm mb-1 uppercase tracking-widest">Sharp AI Mode</p>
+            <p class="text-[10px] leading-relaxed opacity-70">データの真実性を常に監視しています。</p>
         </div>
-        <p class="mt-8 text-[10px] text-gray-300 tracking-[0.3em]">© 2026 SHARPEN SEARCH / YUIRUGBY1128-CTRL</p>
     </footer>
 
     <script>
-        // データベース（コラボ情報・定番情報を大量追加）
+        // 【画像URL付きデータベース】
+        // image_urlに画像のリンクを貼ることで表示されます
         const products = [
-            { id:1, name: "クルトガ ダイブ", maker: "三菱鉛筆", price: "5,500", diameter: "0.5", material: "樹脂", colors: ["#1e3a8a", "#064e3b", "#451a03", "#111827"], colorNames: ["グランブルー", "デンスグリーン", "アビスブルー", "オーロラパープル"], url: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive.html", desc: "自動芯出し機能と芯回転を両立。キャップ式の革新的な一本。", tags: "自動芯出し 芯回転 限定" },
-            { id:2, name: "オレンズネロ", maker: "ぺんてる", price: "3,300", diameter: "0.2 0.3", material: "樹脂", colors: ["#000000", "#1f2937"], colorNames: ["マットブラック", "ブルーブラック"], url: "https://www.pentel.co.jp/products/mechanicalpencils/orenznero/", desc: "芯を出さずに書く。最高峰の自動芯出し機構。", tags: "自動芯出し 折れない" },
-            { id:3, name: "特上欅 シャープペンシル", maker: "野原工芸", price: "11,000〜", diameter: "0.5", material: "木軸", colors: ["#92400e"], colorNames: ["欅(ケヤキ)"], url: "https://www.nohara.jp/", desc: "日本の伝統工芸。一生モノの木軸。※入手困難", tags: "経年変化 工房系 限定" },
-            { id:4, name: "スマッシュ (限定コラボ版)", maker: "ぺんてる", price: "1,100", diameter: "0.5", material: "金属 樹脂", colors: ["#ef4444", "#f59e0b", "#10b981"], colorNames: ["ロフト限定レッド", "ハンズ限定イエロー", "TSUTAYA限定グリーン"], url: "https://www.pentel.co.jp/products/mechanicalpencils/smash/", desc: "ラバーグリップと一体型のペン先。限定色が常に話題。", tags: "限定 コラボ コスパ" },
-            { id:5, name: "ドクターグリップ 30周年限定", maker: "パイロット", price: "880", diameter: "0.5", material: "樹脂", colors: ["#d1d5db", "#9ca3af", "#6b7280"], colorNames: ["30周年プレミアムカラー"], url: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/drgrip/", desc: "疲れにくいペンの代名詞。歴代の人気カラーを復刻。", tags: "限定 コラボ" },
-            { id:6, name: "グラフギア1000", maker: "ぺんてる", price: "1,100", diameter: "0.3 0.4 0.5 0.7 0.9", material: "金属", colors: ["#94a3b8"], colorNames: ["シルバー"], url: "https://www.pentel.co.jp/products/mechanicalpencils/graphgear1000/", desc: "ペン先が収納できるオールメタルの製図用。", tags: "製図用 高剛性" },
-            { id:7, name: "カヴェコ スペシャル (ブルーエディション)", maker: "Kaweco", price: "7,700", diameter: "0.5 0.7", material: "金属", colors: ["#1d4ed8"], colorNames: ["限定ブルー"], url: "http://www.kaweco-pen.com/", desc: "ドイツの老舗。八角形ボディ。限定色は争奪戦。", tags: "海外ブランド 限定 金属" }
+            {
+                id: 1, name: "クルトガ ダイブ", maker: "三菱鉛筆", price: "5,500", diameter: "0.5", material: "樹脂",
+                image_url: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive/img/main_visual.jpg",
+                stdColors: [{ name: "アビスブルー", hex: "#1e3a8a" }, { name: "デンスグリーン", hex: "#064e3b" }],
+                limColors: [{ name: "グランブルー", hex: "#1e40af", note: "第一弾 5000本限定" }, { name: "オーロラパープル", hex: "#4c1d95", note: "2023年限定" }],
+                url: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive.html",
+                desc: "自動芯出し機能と芯回転を両立。キャップ式の革新的シャーペン。",
+                tags: "定番 限定 記念"
+            },
+            {
+                id: 2, name: "スマッシュ", maker: "ぺんてる", price: "1,100", diameter: "0.5", material: "樹脂/金属",
+                image_url: "https://www.pentel.co.jp/wp-content/uploads/2023/06/SMASH_main.jpg",
+                stdColors: [{ name: "ブラック", hex: "#000000" }],
+                limColors: [{ name: "ロフト限定 イエロー", hex: "#facc15", note: "LOFTコラボ" }, { name: "ジャパンシルバー", hex: "#94a3b8", note: "30周年記念" }],
+                url: "https://www.pentel.co.jp/products/mechanicalpencils/smash/",
+                desc: "1986年誕生の名作。ペン先とグリップが一体化した高剛性モデル。",
+                tags: "定番 限定 コラボ"
+            }
         ];
 
-        // 最新情報の生成（リンク付き）
         const newsData = [
-            { title: "三菱鉛筆: クルトガ新色「シティポップ」限定発売", url: "https://www.mpuni.co.jp/news/index.html" },
-            { title: "野原工芸: 2026年秋のオンライン予約開始日発表", url: "https://www.nohara.jp/" },
-            { title: "ロフト限定: スマッシュ「レトロモダンシリーズ」探知", url: "https://www.loft.co.jp/store/" },
-            { title: "ぺんてる: オレンズATにアニメコラボモデル登場の噂", url: "https://www.pentel.co.jp/" }
+            { title: "三菱鉛筆: クルトガ新限定色リリース情報", url: "https://www.mpuni.co.jp/" },
+            { title: "野原工芸: 2026年予約スケジュール公開", url: "https://www.nohara.jp/" },
+            { title: "ロフト: 文房具の会 2026 コラボモデル発表", url: "https://www.loft.co.jp/" }
         ];
 
         function displayProducts(data) {
             const list = document.getElementById('productList');
-            document.getElementById('resultCount').innerText = `${data.length} Results found`;
+            document.getElementById('resultCount').innerText = `${data.length} ITEMS ARCHIVED`;
             list.innerHTML = "";
 
             data.forEach(p => {
-                const colorDots = p.colors.map(c => `<span class="color-dot" style="background:${c}"></span>`).join("");
+                const img = p.image_url ? `<img src="${p.image_url}" class="w-full h-full product-img">` : `<div class="text-[8px] text-gray-300 font-bold italic">NO PHOTO</div>`;
+                
                 list.innerHTML += `
-                    <div class="amazon-border p-4 flex gap-4 hover:bg-gray-50 transition-all cursor-pointer" onclick="openModal(${p.id})">
-                        <div class="w-20 h-20 bg-white border flex items-center justify-center text-[8px] text-gray-300 font-bold tracking-tighter italic">NO IMAGE</div>
+                    <div class="amazon-border p-4 flex gap-4 hover:shadow-md transition-all cursor-pointer bg-white" onclick="openModal(${p.id})">
+                        <div class="w-24 h-24 bg-gray-50 flex items-center justify-center border shrink-0 overflow-hidden">${img}</div>
                         <div class="flex-grow">
-                            <h3 class="text-black font-bold text-base leading-tight">${p.name}</h3>
-                            <p class="text-[10px] text-gray-400 mb-1 uppercase">${p.maker}</p>
-                            <div class="mb-2">${colorDots}</div>
+                            <h3 class="text-blue-800 font-black text-lg tracking-tighter">${p.name}</h3>
+                            <p class="text-[9px] text-gray-400 font-bold uppercase mb-2">${p.maker}</p>
+                            <div class="flex gap-1 mb-2">
+                                ${p.stdColors.map(c => `<span class="color-dot" style="background:${c.hex}"></span>`).join('')}
+                                <span class="text-gray-200">|</span>
+                                ${p.limColors.map(c => `<span class="color-dot border-dashed border-red-500" style="background:${c.hex}"></span>`).join('')}
+                            </div>
                             <div class="text-sm font-black">¥${p.price}</div>
                         </div>
                     </div>
@@ -126,36 +129,30 @@
 
         function openModal(id) {
             const p = products.find(item => item.id === id);
-            const colorList = p.colors.map((c, i) => `
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="color-dot w-4 h-4" style="background:${c}"></span>
-                    <span>${p.colorNames[i]}</span>
+            const imgHtml = p.image_url ? `<img src="${p.image_url}" class="w-full h-auto border">` : `<div class="w-full h-64 bg-gray-100 flex items-center justify-center text-gray-300 font-bold">NO IMAGE</div>`;
+            
+            const colorSection = (list, title, isLim) => `
+                <h4 class="text-[10px] font-bold ${isLim?'text-red-500':'text-gray-400'} uppercase mb-2 border-b pb-1">${title}</h4>
+                <div class="grid grid-cols-1 gap-2 mb-4">
+                    ${list.map(c => `
+                        <div class="flex items-center gap-2 text-xs bg-gray-50 p-2 border">
+                            <span class="color-dot" style="background:${c.hex}"></span>
+                            <span class="font-bold">${c.name}</span>
+                            <span class="text-[9px] text-gray-400">${c.note||''}</span>
+                        </div>
+                    `).join('')}
                 </div>
-            `).join("");
+            `;
 
             document.getElementById('modalContent').innerHTML = `
-                <div class="uppercase text-[10px] font-bold text-gray-400 tracking-widest mb-2">${p.maker}</div>
-                <h2 class="text-3xl font-black mb-4 tracking-tighter text-black">${p.name}</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-6">
-                    <div>
-                        <h4 class="font-bold text-xs mb-3 text-gray-500 uppercase tracking-wider">Color Variations</h4>
-                        <div class="grid grid-cols-1 gap-2">${colorList}</div>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-xs mb-3 text-gray-500 uppercase tracking-wider">Specifications</h4>
-                        <p class="text-xs text-gray-600 mb-4 leading-relaxed">${p.desc}</p>
-                        <div class="space-y-1 mb-6 text-[10px]">
-                            <p>芯径: ${p.diameter}mm</p>
-                            <p>素材: ${p.material}</p>
-                        </div>
-                        <div class="flex flex-wrap gap-1 mb-6">
-                            ${p.tags.split(' ').map(t => `<span class="bg-black text-white text-[8px] px-2 py-0.5 rounded-full font-bold">#${t}</span>`).join('')}
-                        </div>
-                        <a href="${p.url}" target="_blank" class="block w-full bg-black text-white text-center text-xs font-bold py-3 hover:bg-gray-800 transition">
-                            公式サイトで詳細を確認 →
-                        </a>
-                    </div>
+                <div class="w-full md:w-1/2">${imgHtml}</div>
+                <div class="w-full md:w-1/2">
+                    <p class="text-[10px] font-black text-gray-300 tracking-[0.3em] mb-1 uppercase">${p.maker}</p>
+                    <h2 class="text-3xl font-black mb-6 tracking-tighter">${p.name}</h2>
+                    ${colorSection(p.stdColors, "Standard Colors / 定番色", false)}
+                    ${colorSection(p.limColors, "Limited & Special / 限定色", true)}
+                    <p class="text-xs text-gray-600 mb-6 leading-relaxed">${p.desc}</p>
+                    <a href="${p.url}" target="_blank" class="block w-full bg-black text-white text-center text-xs font-bold py-4 hover:opacity-80 transition">公式サイトを確認 →</a>
                 </div>
             `;
             document.getElementById('detailModal').style.display = 'flex';
@@ -163,35 +160,24 @@
 
         function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
-        function filter() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            const checks = Array.from(document.querySelectorAll('.filter-check:checked')).map(c => c.value);
-            const filtered = products.filter(p => {
-                const matchQ = p.name.includes(q) || p.maker.includes(q) || p.colorNames.join().includes(q) || p.tags.includes(q);
-                const matchCheck = checks.length === 0 || checks.some(c => p.diameter.includes(c) || p.material.includes(c) || p.tags.includes(c));
-                return matchQ && matchCheck;
-            });
-            displayProducts(filtered);
-        }
-
-        function refreshNews() {
-            const now = new Date();
-            document.getElementById('lastUpdate').innerText = now.toLocaleTimeString();
-            const newsList = document.getElementById('newsList');
-            newsList.innerHTML = newsData.map(n => `
-                <li class="flex justify-between items-start border-l-2 border-black pl-2">
-                    <span class="font-medium">${n.title}</span>
-                    <a href="${n.url}" target="_blank" class="text-blue-600 font-bold hover:underline shrink-0 ml-2">リンク →</a>
+        function refresh() {
+            document.getElementById('lastUpdate').innerText = new Date().toLocaleString();
+            document.getElementById('newsList').innerHTML = newsData.map(n => `
+                <li class="flex justify-between items-center border-b border-gray-100 pb-1">
+                    <span class="font-bold text-gray-700">${n.title}</span>
+                    <a href="${n.url}" target="_blank" class="text-blue-600 font-black hover:underline">LINK</a>
                 </li>
             `).join("");
         }
 
-        document.getElementById('searchInput').addEventListener('input', filter);
-        document.querySelectorAll('.filter-check').forEach(c => c.addEventListener('change', filter));
-        
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = products.filter(p => p.name.includes(q) || p.maker.includes(q) || p.tags.includes(q));
+            displayProducts(filtered);
+        });
+
         displayProducts(products);
-        refreshNews();
-        setInterval(refreshNews, 300000); // 5分ごとにニュースエリアを再スキャン風に更新
+        refresh();
     </script>
 </body>
 </html>
