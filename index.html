@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シャーペン検索DB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .amazon-border { border: 1px solid #ddd; }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+
+    <header class="border-b border-gray-300 p-4 sticky top-0 bg-white z-10">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-bold tracking-tighter">SHARPEN SEARCH</h1>
+            <div class="flex-grow mx-8">
+                <input type="text" id="searchInput" placeholder="製品名、メーカー、タグで検索..." 
+                       class="w-full border border-gray-400 p-2 rounded shadow-sm focus:outline-none focus:border-black">
+            </div>
+            <div class="text-sm font-medium">最新情報掲示板</div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto flex p-4 gap-6">
+        <aside class="w-64 flex-shrink-0">
+            <h2 class="font-bold mb-4 border-b pb-2">絞り込み</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-sm font-bold mb-2">芯径</h3>
+                <label class="block text-sm"><input type="checkbox" class="filter-check" value="0.3"> 0.3mm</label>
+                <label class="block text-sm"><input type="checkbox" class="filter-check" value="0.5"> 0.5mm</label>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-sm font-bold mb-2">素材</h3>
+                <label class="block text-sm"><input type="checkbox" class="filter-check" value="木軸"> 木軸</label>
+                <label class="block text-sm"><input type="checkbox" class="filter-check" value="金属"> 金属</label>
+                <label class="block text-sm"><input type="checkbox" class="filter-check" value="樹脂"> 樹脂</label>
+            </div>
+        </aside>
+
+        <section class="flex-grow">
+            <div id="resultCount" class="text-sm mb-4 text-gray-600">結果を読み込み中...</div>
+            <div id="productList" class="space-y-4">
+                </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-gray-300 mt-20 p-10 bg-gray-50 text-center">
+        <div id="sharpAI" class="max-w-xl mx-auto p-4 bg-white border border-black rounded shadow-md">
+            <p class="font-bold text-sm mb-2">🤖 シャープAI（準備中）</p>
+            <p class="text-xs text-gray-500">「完璧な一本を見つけるお手伝いをします」</p>
+        </div>
+        <p class="mt-8 text-xs text-gray-400">© 2026 SHARPEN SEARCH DB. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // サンプルデータ（後であなたが自由に追加できます）
+        const products = [
+            { name: "クルトガ ダイブ", maker: "三菱鉛筆", price: "5,500", diameter: "0.5", material: "樹脂", tags: "自動芯出し 芯回転" },
+            { name: "オレンズネロ", maker: "ぺんてる", price: "3,300", diameter: "0.3", material: "樹脂", tags: "自動芯出し 折れない" },
+            { name: "特上欅 シャープペンシル", maker: "野原工芸", price: "時価", diameter: "0.5", material: "木軸", tags: "経年変化 工房系" }
+        ];
+
+        function displayProducts(data) {
+            const list = document.getElementById('productList');
+            const count = document.getElementById('resultCount');
+            list.innerHTML = "";
+            count.innerText = `${data.length} 件の結果を表示中`;
+
+            data.forEach(p => {
+                list.innerHTML += `
+                    <div class="amazon-border p-4 flex gap-4 hover:shadow-sm transition-shadow">
+                        <div class="w-32 h-32 bg-gray-100 flex items-center justify-center text-xs text-gray-400">画像準備中</div>
+                        <div class="flex-grow">
+                            <h3 class="text-blue-600 font-bold hover:underline cursor-pointer text-lg">${p.name}</h3>
+                            <p class="text-sm text-gray-600">${p.maker}</p>
+                            <div class="my-1 font-bold text-xl">¥${p.price}</div>
+                            <div class="text-xs space-x-2 mt-2">
+                                <span class="bg-gray-200 px-2 py-1 rounded">${p.diameter}mm</span>
+                                <span class="bg-gray-200 px-2 py-1 rounded">${p.material}</span>
+                                <span class="text-gray-400">#${p.tags}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 初期表示
+        displayProducts(products);
+
+        // 検索機能（簡易版）
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtered = products.filter(p => 
+                p.name.toLowerCase().includes(val) || 
+                p.maker.toLowerCase().includes(val) ||
+                p.tags.toLowerCase().includes(val)
+            );
+            displayProducts(filtered);
+        });
+    </script>
+</body>
+</html>
