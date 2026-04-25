@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHARPEN SEARCH - 画像・アーカイブ対応DB</title>
+    <title>SHARPEN SEARCH - 究極のシャーペン・アーカイブ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; }
         .amazon-border { border: 1px solid #ddd; }
-        .color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; margin-right: 4px; vertical-align: middle; }
-        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; align-items: center; justify-content: center; overflow-y: auto; }
-        .product-img { object-fit: contain; background: white; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; margin-right: 4px; vertical-align: middle; }
+        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 50; align-items: center; justify-content: center; overflow-y: auto; }
+        .product-img { object-fit: contain; mix-blend-mode: multiply; max-height: 100%; width: auto; }
     </style>
 </head>
 <body class="bg-white text-gray-900 pb-20">
@@ -19,108 +19,119 @@
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <h1 class="text-xl font-black tracking-tighter shrink-0 cursor-pointer" onclick="location.reload()">SHARPEN SEARCH</h1>
             <div class="flex-grow max-w-2xl">
-                <input type="text" id="searchInput" placeholder="製品名、メーカー、記念モデル名で検索..." 
+                <input type="text" id="searchInput" placeholder="製品名、メーカー、限定色名、芯径(0.3など)で検索..." 
                        class="w-full border border-gray-400 p-2 rounded shadow-sm focus:outline-none focus:border-black text-sm">
             </div>
-            <div class="hidden md:block text-[10px] text-gray-400 text-right uppercase font-mono">
-                System Online<br><span id="lastUpdate"></span>
+            <div class="hidden md:block text-[10px] text-gray-400 text-right font-mono uppercase">
+                Verified Database<br><span id="lastUpdate"></span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto flex flex-col md:flex-row p-4 gap-6">
-        <aside class="w-full md:w-64 flex-shrink-0">
-            <h2 class="font-bold mb-4 border-b pb-2 text-sm uppercase">Archive Filters</h2>
-            <div class="space-y-6">
-                <div>
-                    <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2">Category</h3>
-                    <div class="space-y-1 text-sm">
-                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="定番" class="filter-check"> 定番モデル</label>
-                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="限定" class="filter-check"> 限定・記念モデル</label>
-                        <label class="block cursor-pointer hover:text-blue-600"><input type="checkbox" value="コラボ" class="filter-check"> コラボレーション</label>
-                    </div>
+    <main class="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-8 mt-4">
+        <aside class="w-full md:w-64 shrink-0">
+            <div class="sticky top-24">
+                <h2 class="font-bold text-[10px] text-gray-400 uppercase tracking-widest border-b pb-2 mb-4">Quick Filters</h2>
+                <div class="flex flex-wrap gap-2 md:flex-col text-left">
+                    <button onclick="quickSearch('限定')" class="text-left text-xs p-2 bg-gray-50 hover:bg-black hover:text-white rounded border">限定・コラボモデル</button>
+                    <button onclick="quickSearch('木軸')" class="text-left text-xs p-2 bg-gray-50 hover:bg-black hover:text-white rounded border">木軸・高級軸</button>
+                    <button onclick="quickSearch('0.3')" class="text-left text-xs p-2 bg-gray-50 hover:bg-black hover:text-white rounded border">芯径 0.3mm</button>
+                    <button onclick="quickSearch('自動芯出し')" class="text-left text-xs p-2 bg-gray-50 hover:bg-black hover:text-white rounded border">自動芯出し機構</button>
                 </div>
             </div>
         </aside>
 
         <section class="flex-grow">
-            <div class="mb-6 p-4 bg-gray-50 border border-black rounded-sm shadow-sm">
-                <h2 class="font-bold text-xs mb-3 border-b border-gray-300 pb-1 flex justify-between items-center italic">
-                    <span>LATEST NEWS / COLLABORATION</span>
-                    <span class="text-red-600 animate-pulse font-mono text-[10px]">● LIVE SENSOR</span>
-                </h2>
-                <ul id="newsList" class="text-xs space-y-3"></ul>
-            </div>
-
-            <div id="resultCount" class="text-[10px] mb-4 text-gray-400 font-bold uppercase tracking-[0.2em]">Searching...</div>
+            <div id="resultCount" class="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest border-b pb-1">Scanning...</div>
             <div id="productList" class="grid grid-cols-1 gap-4"></div>
         </section>
     </main>
 
     <div id="detailModal" onclick="closeModal()">
-        <div class="bg-white p-6 md:p-10 max-w-4xl w-11/12 rounded-sm shadow-2xl relative my-10" onclick="event.stopPropagation()">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-3xl hover:opacity-50">&times;</button>
-            <div id="modalContent" class="flex flex-col md:flex-row gap-8"></div>
+        <div class="bg-white p-6 md:p-12 max-w-5xl w-11/12 rounded-sm relative my-10 shadow-2xl" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-4xl font-light hover:opacity-50">&times;</button>
+            <div id="modalContent" class="flex flex-col md:flex-row gap-12"></div>
         </div>
     </div>
 
-    <footer class="border-t border-gray-200 mt-20 p-12 bg-white text-center">
-        <div id="sharpAI" class="max-w-xl mx-auto p-6 border border-black hover:bg-black hover:text-white transition-all cursor-help">
-            <p class="font-bold text-sm mb-1 uppercase tracking-widest">Sharp AI Mode</p>
-            <p class="text-[10px] leading-relaxed opacity-70">データの真実性を常に監視しています。</p>
-        </div>
-    </footer>
-
     <script>
-        // 【画像URL付きデータベース】
-        // image_urlに画像のリンクを貼ることで表示されます
         const products = [
             {
-                id: 1, name: "クルトガ ダイブ", maker: "三菱鉛筆", price: "5,500", diameter: "0.5", material: "樹脂",
+                id: 1, name: "クルトガ ダイブ (KURUTOGA DIVE)", maker: "三菱鉛筆", price: "5,500", diameter: "0.5", material: "樹脂",
                 image_url: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive/img/main_visual.jpg",
-                stdColors: [{ name: "アビスブルー", hex: "#1e3a8a" }, { name: "デンスグリーン", hex: "#064e3b" }],
-                limColors: [{ name: "グランブルー", hex: "#1e40af", note: "第一弾 5000本限定" }, { name: "オーロラパープル", hex: "#4c1d95", note: "2023年限定" }],
+                stdColors: [{ name: "アビスブルー", hex: "#1e3a8a" }, { name: "デンスグリーン", hex: "#064e3b" }, { name: "トワイライトオレンジ", hex: "#c2410c" }],
+                limColors: [{ name: "グランブルー", hex: "#1e40af", note: "初代5000本限定" }, { name: "ムーンナイトブルー", hex: "#1e1b4b", note: "限定" }, { name: "オーロラパープル", hex: "#4c1d95", note: "2023年限定" }],
                 url: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive.html",
-                desc: "自動芯出し機能と芯回転を両立。キャップ式の革新的シャーペン。",
-                tags: "定番 限定 記念"
+                desc: "自動芯出し・芯回転の頂点。キャップ式という独自のスタイル。",
+                tags: "限定 自動芯出し 芯回転"
             },
             {
-                id: 2, name: "スマッシュ", maker: "ぺんてる", price: "1,100", diameter: "0.5", material: "樹脂/金属",
+                id: 2, name: "スマッシュ (SMASH)", maker: "ぺんてる", price: "1,100", diameter: "0.3 0.5", material: "樹脂/金属",
                 image_url: "https://www.pentel.co.jp/wp-content/uploads/2023/06/SMASH_main.jpg",
                 stdColors: [{ name: "ブラック", hex: "#000000" }],
-                limColors: [{ name: "ロフト限定 イエロー", hex: "#facc15", note: "LOFTコラボ" }, { name: "ジャパンシルバー", hex: "#94a3b8", note: "30周年記念" }],
+                limColors: [{ name: "ロフト限定 イエロー", hex: "#facc15", note: "LOFTコラボ" }, { name: "ハンズ限定 ネイビー", hex: "#1e3a8a", note: "Handsコラボ" }, { name: "ジャパンシルバー", hex: "#94a3b8", note: "30周年記念" }],
                 url: "https://www.pentel.co.jp/products/mechanicalpencils/smash/",
-                desc: "1986年誕生の名作。ペン先とグリップが一体化した高剛性モデル。",
-                tags: "定番 限定 コラボ"
+                desc: "1986年発売の伝説的ロングセラー。タフな書き味が魅力。",
+                tags: "定番 限定 コラボ 0.3 0.5"
+            },
+            {
+                id: 3, name: "S20 (エストゥエンティ)", maker: "パイロット", price: "2,200", diameter: "0.3 0.5", material: "木軸(樹脂含浸材)",
+                image_url: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/s20/images/S20_05_bn.jpg",
+                stdColors: [{ name: "ブラウン", hex: "#451a03" }, { name: "ブラック", hex: "#000000" }, { name: "マホガニー", hex: "#7c2d12" }, { name: "ダークブルー", hex: "#1e3a8a" }],
+                limColors: [{ name: "限定透明軸", hex: "#ffffff", note: "海外限定/非公式流通" }],
+                url: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/s20/",
+                desc: "使い込むほど手に馴染む木軸。低重心で圧倒的な書きやすさ。",
+                tags: "定番 木軸 人気 0.3 0.5"
+            },
+            {
+                id: 4, name: "ドクターグリップ エース", maker: "パイロット", price: "880", diameter: "0.5", material: "樹脂/ラバー",
+                image_url: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/drgrip_ace/images/drgrip_ace_05_bn.jpg",
+                stdColors: [{ name: "ブラック", hex: "#000000" }, { name: "ホワイト", hex: "#ffffff" }],
+                limColors: [{ name: "ネオン限定", hex: "#bef264", note: "30周年記念" }, { name: "パステル限定", hex: "#fbcfe8", note: "限定" }],
+                url: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/drgrip_ace/",
+                desc: "疲れにくいドクターグリップに、折れない「アクティブサスペンション」を搭載。",
+                tags: "定番 限定 疲れない"
+            },
+            {
+                id: 5, name: "オレンズネロ (orenznero)", maker: "ぺんてる", price: "3,300", diameter: "0.2 0.3 0.5", material: "樹脂/金属粉",
+                image_url: "https://www.pentel.co.jp/wp-content/uploads/2017/01/orenznero_main.jpg",
+                stdColors: [{ name: "マットブラック", hex: "#000000" }],
+                limColors: [{ name: "ブルーブラック", hex: "#0f172a", note: "限定" }, { name: "ガンメタル", hex: "#4b5563", note: "限定" }],
+                url: "https://www.pentel.co.jp/products/mechanicalpencils/orenznero/",
+                desc: "ノック不要の自動芯出し。極細0.2でも折れない。",
+                tags: "定番 限定 自動芯出し 0.2 0.3"
+            },
+            {
+                id: 6, name: "ステッドラー 925 35", maker: "ステッドラー", price: "1,320", diameter: "0.3 0.5 0.7 0.9 2.0", material: "金属",
+                image_url: "https://www.staedtler.jp/products/pencil/images/925-25-35.jpg",
+                stdColors: [{ name: "ナイトブルー", hex: "#1e3a8a" }],
+                limColors: [{ name: "オールブラック", hex: "#000000", note: "人気限定色" }, { name: "バーガンディ", hex: "#7f1d1d", note: "限定" }, { name: "スノーホワイト", hex: "#ffffff", note: "限定" }],
+                url: "https://www.staedtler.jp/products/pencil/92525.html",
+                desc: "ドイツの製図用。圧倒的な剛性とローレットの食いつき。",
+                tags: "定番 限定 金属 製図用"
             }
-        ];
-
-        const newsData = [
-            { title: "三菱鉛筆: クルトガ新限定色リリース情報", url: "https://www.mpuni.co.jp/" },
-            { title: "野原工芸: 2026年予約スケジュール公開", url: "https://www.nohara.jp/" },
-            { title: "ロフト: 文房具の会 2026 コラボモデル発表", url: "https://www.loft.co.jp/" }
         ];
 
         function displayProducts(data) {
             const list = document.getElementById('productList');
-            document.getElementById('resultCount').innerText = `${data.length} ITEMS ARCHIVED`;
+            document.getElementById('resultCount').innerText = `${data.length} ARCHIVES FOUND`;
             list.innerHTML = "";
-
             data.forEach(p => {
-                const img = p.image_url ? `<img src="${p.image_url}" class="w-full h-full product-img">` : `<div class="text-[8px] text-gray-300 font-bold italic">NO PHOTO</div>`;
-                
+                const stdDots = p.stdColors.map(c => `<span class="color-dot" style="background:${c.hex}"></span>`).join("");
+                const limDots = p.limColors.map(c => `<span class="color-dot border-dashed border-red-500" style="background:${c.hex}"></span>`).join("");
                 list.innerHTML += `
                     <div class="amazon-border p-4 flex gap-4 hover:shadow-md transition-all cursor-pointer bg-white" onclick="openModal(${p.id})">
-                        <div class="w-24 h-24 bg-gray-50 flex items-center justify-center border shrink-0 overflow-hidden">${img}</div>
+                        <div class="w-24 h-24 bg-white flex items-center justify-center border shrink-0 overflow-hidden p-1">
+                            <img src="${p.image_url}" class="product-img">
+                        </div>
                         <div class="flex-grow">
                             <h3 class="text-blue-800 font-black text-lg tracking-tighter">${p.name}</h3>
                             <p class="text-[9px] text-gray-400 font-bold uppercase mb-2">${p.maker}</p>
-                            <div class="flex gap-1 mb-2">
-                                ${p.stdColors.map(c => `<span class="color-dot" style="background:${c.hex}"></span>`).join('')}
-                                <span class="text-gray-200">|</span>
-                                ${p.limColors.map(c => `<span class="color-dot border-dashed border-red-500" style="background:${c.hex}"></span>`).join('')}
+                            <div class="flex flex-col gap-1 mb-2">
+                                <div class="flex items-center gap-2"><span class="text-[8px] text-gray-300 w-8">STD</span> <div>${stdDots}</div></div>
+                                <div class="flex items-center gap-2"><span class="text-[8px] text-red-300 w-8">LIM</span> <div>${limDots}</div></div>
                             </div>
-                            <div class="text-sm font-black">¥${p.price}</div>
+                            <div class="text-sm font-black italic">¥${p.price}</div>
                         </div>
                     </div>
                 `;
@@ -129,30 +140,34 @@
 
         function openModal(id) {
             const p = products.find(item => item.id === id);
-            const imgHtml = p.image_url ? `<img src="${p.image_url}" class="w-full h-auto border">` : `<div class="w-full h-64 bg-gray-100 flex items-center justify-center text-gray-300 font-bold">NO IMAGE</div>`;
-            
             const colorSection = (list, title, isLim) => `
-                <h4 class="text-[10px] font-bold ${isLim?'text-red-500':'text-gray-400'} uppercase mb-2 border-b pb-1">${title}</h4>
+                <h4 class="text-[10px] font-black ${isLim?'text-red-500':'text-gray-400'} uppercase mb-2 border-b pb-1 tracking-widest">${title}</h4>
                 <div class="grid grid-cols-1 gap-2 mb-4">
                     ${list.map(c => `
-                        <div class="flex items-center gap-2 text-xs bg-gray-50 p-2 border">
-                            <span class="color-dot" style="background:${c.hex}"></span>
-                            <span class="font-bold">${c.name}</span>
-                            <span class="text-[9px] text-gray-400">${c.note||''}</span>
+                        <div class="flex items-center gap-3 bg-gray-50 p-2 border hover:border-black">
+                            <span class="color-dot w-6 h-6 rounded-none" style="background:${c.hex}"></span>
+                            <div class="leading-tight">
+                                <div class="text-[11px] font-bold">${c.name}</div>
+                                ${c.note ? `<div class="text-[9px] text-gray-400">${c.note}</div>` : ''}
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             `;
-
             document.getElementById('modalContent').innerHTML = `
-                <div class="w-full md:w-1/2">${imgHtml}</div>
-                <div class="w-full md:w-1/2">
+                <div class="w-full md:w-2/5 flex items-center justify-center bg-white p-4 border">
+                    <img src="${p.image_url}" class="max-w-full h-auto">
+                </div>
+                <div class="w-full md:w-3/5">
                     <p class="text-[10px] font-black text-gray-300 tracking-[0.3em] mb-1 uppercase">${p.maker}</p>
-                    <h2 class="text-3xl font-black mb-6 tracking-tighter">${p.name}</h2>
+                    <h2 class="text-3xl font-black mb-6 tracking-tighter italic border-l-4 border-black pl-3">${p.name}</h2>
                     ${colorSection(p.stdColors, "Standard Colors / 定番色", false)}
-                    ${colorSection(p.limColors, "Limited & Special / 限定色", true)}
-                    <p class="text-xs text-gray-600 mb-6 leading-relaxed">${p.desc}</p>
-                    <a href="${p.url}" target="_blank" class="block w-full bg-black text-white text-center text-xs font-bold py-4 hover:opacity-80 transition">公式サイトを確認 →</a>
+                    ${colorSection(p.limColors, "Limited Archives / 限定色", true)}
+                    <p class="text-xs text-gray-600 mb-6 leading-relaxed font-medium">${p.desc}</p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        ${p.tags.split(' ').map(t => `<span class="bg-black text-white text-[8px] px-2 py-1 font-bold uppercase">#${t}</span>`).join('')}
+                    </div>
+                    <a href="${p.url}" target="_blank" class="block w-full bg-black text-white text-center text-xs font-black py-4 hover:invert transition uppercase tracking-widest">Official Site</a>
                 </div>
             `;
             document.getElementById('detailModal').style.display = 'flex';
@@ -160,24 +175,17 @@
 
         function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
-        function refresh() {
-            document.getElementById('lastUpdate').innerText = new Date().toLocaleString();
-            document.getElementById('newsList').innerHTML = newsData.map(n => `
-                <li class="flex justify-between items-center border-b border-gray-100 pb-1">
-                    <span class="font-bold text-gray-700">${n.title}</span>
-                    <a href="${n.url}" target="_blank" class="text-blue-600 font-black hover:underline">LINK</a>
-                </li>
-            `).join("");
+        function quickSearch(tag) { document.getElementById('searchInput').value = tag; filter(); }
+
+        function filter() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(q) || p.maker.toLowerCase().includes(q) || p.tags.includes(q) || p.diameter.includes(q));
+            displayProducts(filtered);
         }
 
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase();
-            const filtered = products.filter(p => p.name.includes(q) || p.maker.includes(q) || p.tags.includes(q));
-            displayProducts(filtered);
-        });
-
+        document.getElementById('searchInput').addEventListener('input', filter);
         displayProducts(products);
-        refresh();
+        document.getElementById('lastUpdate').innerText = new Date().toLocaleDateString();
     </script>
 </body>
 </html>
