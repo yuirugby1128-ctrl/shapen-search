@@ -3,246 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHARPEN ARCHIVE - 究極の完全版</title>
+    <title>THE SHARPEN DATABASE - 自動更新版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; background-color: #f3f4f6; color: #111; }
-        .sharp-card { background: white; border-radius: 12px; transition: 0.3s; border: 1px solid #e5e7eb; overflow: hidden; }
-        .sharp-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-color: #000; }
-        .img-box { height: 220px; display: flex; align-items: center; justify-content: center; background: #fff; position: relative; padding: 15px; }
-        .img-box img { max-height: 100%; max-width: 100%; object-fit: contain; }
-        .color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px #ddd; transition: 0.2s; }
-        .color-dot:hover { transform: scale(1.2); }
-        .color-dot.active { box-shadow: 0 0 0 2px #000; transform: scale(1.1); }
-        #adminPanel { display: none; }
-        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; background-color: #f8f9fa; color: #1a1a1a; }
+        .sharp-card { background: white; border: 2px solid #000; border-radius: 0px; transition: 0.2s; position: relative; }
+        .sharp-card:hover { transform: translate(-4px, -4px); box-shadow: 6px 6px 0px #000; }
+        .filter-btn { border: 2px solid #000; background: white; padding: 6px 12px; font-size: 11px; font-weight: 900; cursor: pointer; transition: 0.1s; }
+        .filter-btn:hover, .filter-btn.active { background: #000; color: #fff; }
+        #detailModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-20">
 
-    <header class="bg-white border-b-4 border-black sticky top-0 z-40 p-4 shadow-md">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <h1 class="text-3xl font-black tracking-tighter italic cursor-pointer" onclick="location.reload()">SHARPEN ARCHIVE</h1>
-            <div class="flex gap-2 w-full max-w-2xl">
-                <input type="text" id="searchInput" placeholder="製品名・メーカー・色で検索..." class="flex-grow border-2 border-black p-3 outline-none text-lg">
-                <button onclick="toggleAdmin()" class="bg-black text-white px-6 py-2 font-bold text-xs hover:bg-gray-800 transition">管理モード</button>
+    <header class="bg-white border-b-4 border-black sticky top-0 z-50 p-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <h1 class="text-3xl font-black italic tracking-tighter cursor-pointer" onclick="location.reload()">SHARPEN <span class="text-red-600">DB</span></h1>
+                <div class="flex-grow max-w-2xl w-full">
+                    <input type="text" id="searchInput" placeholder="製品名・メーカー・特徴で検索..." 
+                           class="w-full border-2 border-black p-3 outline-none focus:bg-yellow-50 font-bold placeholder-gray-400">
+                </div>
+                <div class="flex gap-2">
+                    <a href="https://docs.google.com/spreadsheets/d/1O5YhZ7nSjYVjDk9S7Y3R9l2_kZzW9mN8z8I8O6Qx6Y0/edit" target="_blank" class="bg-green-600 text-white px-4 py-2 text-xs font-bold hover:bg-green-700">シートを編集</a>
+                </div>
             </div>
+            <div id="tagFilters" class="flex flex-wrap gap-2 mt-4 overflow-x-auto">
+                <button onclick="filterByTag('すべて')" class="filter-btn active">すべて</button>
+                </div>
         </div>
     </header>
 
-    <section id="adminPanel" class="max-w-4xl mx-auto m-6 p-6 bg-white border-4 border-black shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-        <h2 class="font-black text-2xl mb-4 text-red-600 italic uppercase">Upload & Add Color</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="col-span-2 text-xs font-bold text-gray-500 bg-gray-100 p-2 border-l-4 border-gray-400">
-                既存の製品名と同じ名前にすると、その製品に新しい色の画像を追加できます。
-            </div>
-            <input type="text" id="newName" placeholder="製品名（例：スマッシュ）" class="border-2 border-gray-300 p-2 focus:border-black outline-none">
-            <input type="text" id="newMaker" placeholder="メーカー（例：ぺんてる）" class="border-2 border-gray-300 p-2 focus:border-black outline-none">
-            <div class="flex items-center gap-2 border-2 border-gray-300 p-2">
-                <span class="text-xs font-bold">写真の色:</span>
-                <input type="color" id="newColorHex" class="w-10 h-8 cursor-pointer">
-                <input type="text" id="newColorName" placeholder="色名(例: 限定レッド)" class="flex-grow text-sm outline-none">
-            </div>
-            <input type="file" id="newImage" accept="image/*" class="border-2 border-gray-300 p-1 text-sm bg-white">
-            <textarea id="newDesc" placeholder="製品の解説文..." class="col-span-2 border-2 border-gray-300 p-2 h-24 outline-none focus:border-black"></textarea>
-            <button onclick="saveData()" class="col-span-2 bg-red-600 text-white font-black py-4 hover:bg-red-700 transition uppercase tracking-widest">このデータをデータベースに刻む</button>
-        </div>
-    </section>
-
     <main class="max-w-7xl mx-auto p-4 mt-8">
-        <div id="resultCount" class="text-sm font-black text-gray-400 mb-6 border-b-2 border-gray-200 pb-2 italic">SCANNING ARCHIVES...</div>
-        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
+        <div id="loading" class="flex flex-col items-center justify-center py-20">
+            <div class="loading-spinner mb-4"></div>
+            <p class="font-black italic text-gray-500">FETCHING DATA FROM SHEET...</p>
+        </div>
+        
+        <div id="resultCount" class="text-[10px] font-black text-gray-400 mb-6 tracking-[0.2em] uppercase"></div>
+        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </main>
 
     <div id="detailModal" onclick="closeModal()">
-        <div class="bg-white max-w-5xl w-full p-6 md:p-10 relative flex flex-col md:flex-row gap-10 overflow-hidden shadow-2xl rounded-sm" onclick="event.stopPropagation()">
-            <button onclick="closeModal()" class="absolute top-4 right-6 text-5xl font-thin hover:rotate-90 transition-transform">&times;</button>
+        <div class="bg-white max-w-2xl w-full p-8 relative shadow-[10px_10px_0px_#333]" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute top-4 right-6 text-4xl font-light hover:scale-110 transition">&times;</button>
+            <p id="m-maker" class="text-xs font-black text-blue-600 uppercase tracking-widest mb-1"></p>
+            <h2 id="m-title" class="text-4xl font-black italic tracking-tighter mb-6 border-l-8 border-black pl-4"></h2>
             
-            <div class="w-full md:w-1/2">
-                <div id="modalImageBox" class="h-[300px] md:h-[450px] bg-white border border-gray-100 flex items-center justify-center p-4">
-                    <img id="modalMainImg" src="" class="max-h-full max-w-full object-contain transition-opacity duration-300">
-                </div>
+            <div class="bg-gray-100 p-6 mb-8 border-2 border-black">
+                <h4 class="text-[10px] font-black text-gray-400 uppercase mb-2">Description / 説明</h4>
+                <p id="m-desc" class="text-sm font-bold leading-relaxed text-gray-800"></p>
             </div>
 
-            <div class="w-full md:w-1/2 flex flex-col">
-                <p id="modalMaker" class="text-xs font-black text-gray-300 uppercase tracking-[0.3em] mb-1"></p>
-                <h2 id="modalTitle" class="text-4xl md:text-5xl font-black italic tracking-tighter mb-6 leading-none"></h2>
-                
-                <div class="mb-8 p-4 bg-gray-50 border-r-4 border-black">
-                    <h4 class="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">Select Color / 表示色の切替</h4>
-                    <div id="modalColorList" class="flex flex-wrap gap-4 mb-2"></div>
-                    <p id="selectedColorName" class="text-[10px] font-black text-gray-800 uppercase italic"></p>
-                </div>
-
-                <div class="flex-grow">
-                    <h4 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest border-b pb-1">Description</h4>
-                    <p id="modalDesc" class="text-sm leading-relaxed text-gray-600 font-medium"></p>
-                </div>
-
-                <div class="mt-8 flex gap-2">
-                    <button onclick="closeModal()" class="flex-grow bg-black text-white font-black py-4 hover:invert transition uppercase tracking-widest text-xs">Close Gallery</button>
-                    <button id="deleteBtn" class="bg-gray-100 text-gray-400 px-4 hover:bg-red-500 hover:text-white transition text-xs">削除</button>
-                </div>
-            </div>
+            <a id="m-link" href="#" target="_blank" class="block w-full bg-black text-white text-center font-black py-5 hover:opacity-80 transition tracking-[0.3em] text-sm">OFFICIAL SITE</a>
         </div>
     </div>
 
     <script>
-        // 初期の代表的なデータ群
-        const initialProducts = [
-            {
-                id: 1, name: "クルトガ ダイブ", maker: "三菱鉛筆", desc: "自動芯出し・芯回転・繰り出し量調整を搭載した最高峰モデル。",
-                images: [
-                    { hex: "#1e3a8a", colorName: "アビスブルー", src: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive/img/main_visual.jpg" },
-                    { hex: "#064e3b", colorName: "デンスグリーン", src: "https://www.mpuni.co.jp/products/mechanical_pencils/sharp_pen/kurutoga/dive/img/main_visual.jpg" }
-                ]
-            },
-            {
-                id: 2, name: "スマッシュ", maker: "ぺんてる", desc: "1986年発売。ペン先とグリップが一体化した低重心設計の名作。",
-                images: [
-                    { hex: "#000000", colorName: "ブラック", src: "https://www.pentel.co.jp/wp-content/uploads/2023/06/SMASH_main.jpg" },
-                    { hex: "#facc15", colorName: "ロフト限定イエロー", src: "https://www.pentel.co.jp/wp-content/uploads/2023/06/SMASH_main.jpg" }
-                ]
-            },
-            {
-                id: 3, name: "S20", maker: "パイロット", desc: "使い込むほど手に馴染む樹脂含浸カバ材の木軸シャーペン。",
-                images: [
-                    { hex: "#451a03", colorName: "ブラウン", src: "https://www.pilot.co.jp/products/pen/sharp_pen/sharp_pen/s20/images/S20_05_bn.jpg" }
-                ]
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrBM4Bn62cxPn2yV0SPX6m-tStcXNVCEqM-XjQMqS4BDa3aFGRcCEmG2HaQXt_SCpcLXEvS3vAL3Wd/pub?output=csv';
+        
+        let allProducts = [];
+        let currentFilter = 'すべて';
+
+        // CSVを読み込んで解析する
+        async function loadData() {
+            try {
+                const response = await fetch(CSV_URL);
+                const csvData = await response.text();
+                const rows = csvData.split('\n').slice(1); // 1行目（見出し）を飛ばす
+
+                allProducts = rows.map(row => {
+                    // カンマ区切りのパース（簡易版）
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+                    return {
+                        name: (cols[0] || "").replace(/"/g, '').trim(),
+                        maker: (cols[1] || "").replace(/"/g, '').trim(),
+                        tags: (cols[2] || "").replace(/"/g, '').split(',').map(t => t.trim()),
+                        desc: (cols[3] || "").replace(/"/g, '').trim(),
+                        url: (cols[4] || "").replace(/"/g, '').trim()
+                    };
+                }).filter(p => p.name); // 空行を除去
+
+                document.getElementById('loading').style.display = 'none';
+                generateTagFilters();
+                render();
+            } catch (e) {
+                console.error("データの読み込みに失敗しました", e);
+                document.getElementById('loading').innerHTML = "データの読み込みに失敗しました。スプレッドシートの公開設定を確認してください。";
             }
-        ];
-
-        // データの統合（既存データ + ローカル保存データ）
-        let userStoredData = JSON.parse(localStorage.getItem('sharpen_final_db')) || [];
-        let archiveData = [...userStoredData, ...initialProducts];
-
-        function toggleAdmin() {
-            const panel = document.getElementById('adminPanel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-            window.scrollTo({ top: panel.offsetTop - 100, behavior: 'smooth' });
         }
 
-        // 登録・保存
-        function saveData() {
-            const name = document.getElementById('newName').value.trim();
-            const maker = document.getElementById('newMaker').value.trim();
-            const colorHex = document.getElementById('newColorHex').value;
-            const colorName = document.getElementById('newColorName').value.trim() || "Default";
-            const desc = document.getElementById('newDesc').value;
-            const imageFile = document.getElementById('newImage').files[0];
-
-            if (!name || !imageFile) return alert("製品名と写真を選んでください！");
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgObj = { hex: colorHex, colorName: colorName, src: e.target.result };
-                
-                // archiveDataから既存の製品（ユーザー追加分）を探す
-                let product = userStoredData.find(p => p.name === name);
-                
-                if (product) {
-                    product.images.push(imgObj);
-                } else {
-                    userStoredData.unshift({
-                        id: Date.now(),
-                        name: name,
-                        maker: maker,
-                        desc: desc,
-                        images: [imgObj]
-                    });
-                }
-
-                localStorage.setItem('sharpen_final_db', JSON.stringify(userStoredData));
-                location.reload(); // データを反映するためにリロード
-            };
-            reader.readAsDataURL(imageFile);
-        }
-
-        // 一覧描画
-        function render(query = "") {
-            const list = document.getElementById('productList');
-            const q = query.toLowerCase();
-            const filtered = archiveData.filter(p => p.name.toLowerCase().includes(q) || p.maker.toLowerCase().includes(q));
+        // データからタグボタンを自動生成
+        function generateTagFilters() {
+            const tagSet = new Set();
+            allProducts.forEach(p => p.tags.forEach(t => { if(t) tagSet.add(t) }));
+            const filterContainer = document.getElementById('tagFilters');
             
+            tagSet.forEach(tag => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.innerText = tag;
+                btn.onclick = () => filterByTag(tag);
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        function filterByTag(tag) {
+            currentFilter = tag;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === tag);
+            });
+            render();
+        }
+
+        function render() {
+            const list = document.getElementById('productList');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = allProducts.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(query) || p.maker.toLowerCase().includes(query);
+                const matchesTag = currentFilter === 'すべて' || p.tags.includes(currentFilter);
+                return matchesSearch && matchesTag;
+            });
+
             document.getElementById('resultCount').innerText = `${filtered.length} ARCHIVES LOADED`;
             list.innerHTML = "";
-
-            filtered.forEach(p => {
-                // プレビュー画像はランダムか最初の1枚
-                const previewImg = p.images[0].src;
+            
+            filtered.forEach((p, idx) => {
                 list.innerHTML += `
-                    <div class="sharp-card cursor-pointer group" onclick="openDetail(${p.id})">
-                        <div class="img-box border-b border-gray-50">
-                            <img src="${previewImg}" loading="lazy">
-                            <div class="absolute bottom-3 left-3 flex -space-x-1">
-                                ${p.images.slice(0, 5).map(img => `<span class="w-3 h-3 rounded-full border border-white shadow-sm" style="background:${img.hex}"></span>`).join('')}
-                                ${p.images.length > 5 ? `<span class="text-[8px] bg-gray-800 text-white px-1 rounded-full">+${p.images.length-5}</span>` : ''}
-                            </div>
+                    <div class="sharp-card p-6 cursor-pointer flex flex-col" onclick="openDetail('${encodeURIComponent(p.name)}')">
+                        <p class="text-[9px] font-black text-blue-600 uppercase tracking-tighter mb-1">${p.maker}</p>
+                        <h3 class="text-base font-black italic mb-4 truncate border-b-2 border-gray-100 pb-2">${p.name}</h3>
+                        <div class="flex flex-wrap gap-1 mb-6">
+                            ${p.tags.map(t => t ? `<span class="bg-gray-100 text-[8px] px-2 py-1 font-black rounded-sm border border-gray-200">${t}</span>` : '').join('')}
                         </div>
-                        <div class="p-5">
-                            <p class="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">${p.maker}</p>
-                            <h3 class="font-black text-base group-hover:text-red-600 transition-colors truncate">${p.name}</h3>
-                            <p class="text-[10px] text-gray-400 mt-2 font-bold uppercase italic">${p.images.length} Colors / Photos</p>
+                        <div class="mt-auto flex justify-between items-center text-[10px] font-black italic">
+                            <span>DETAILS</span>
+                            <span class="text-gray-300">GO TO LINK →</span>
                         </div>
                     </div>
                 `;
             });
         }
 
-        // 詳細
-        function openDetail(id) {
-            const p = archiveData.find(item => item.id === id);
-            if (!p) return;
-
-            document.getElementById('modalTitle').innerText = p.name;
-            document.getElementById('modalMaker').innerText = p.maker;
-            document.getElementById('modalDesc').innerText = p.desc || "解説はありません。";
-            
-            const colorList = document.getElementById('modalColorList');
-            colorList.innerHTML = "";
-            
-            p.images.forEach((img, idx) => {
-                const dot = document.createElement('div');
-                dot.className = "color-dot";
-                dot.style.backgroundColor = img.hex;
-                dot.onclick = () => {
-                    const mainImg = document.getElementById('modalMainImg');
-                    mainImg.style.opacity = '0';
-                    setTimeout(() => {
-                        mainImg.src = img.src;
-                        mainImg.style.opacity = '1';
-                    }, 200);
-                    document.getElementById('selectedColorName').innerText = `Current: ${img.colorName}`;
-                    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-                    dot.classList.add('active');
-                };
-                colorList.appendChild(dot);
-                if(idx === 0) dot.click();
-            });
-
-            // 削除ボタン（ユーザーデータのみ有効）
-            const deleteBtn = document.getElementById('deleteBtn');
-            if (userStoredData.some(u => u.id === id)) {
-                deleteBtn.style.display = "block";
-                deleteBtn.onclick = () => {
-                    if(confirm("この製品を削除しますか？")) {
-                        userStoredData = userStoredData.filter(u => u.id !== id);
-                        localStorage.setItem('sharpen_final_db', JSON.stringify(userStoredData));
-                        location.reload();
-                    }
-                };
-            } else {
-                deleteBtn.style.display = "none";
-            }
-
-            document.getElementById('detailModal').style.display = 'flex';
+        function openDetail(name) {
+            const p = allProducts.find(item => item.name === decodeURIComponent(name));
+            if(!p) return;
+            document.getElementById('m-title').innerText = p.name;
+            document.getElementById('m-maker').innerText = p.maker;
+            document.getElementById('m-desc').innerText = p.desc;
+            document.getElementById('m-link').href = p.url || "#";
+            document.getElementById('detailModal').style.display = "flex";
         }
 
-        function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
-        document.getElementById('searchInput').addEventListener('input', (e) => render(e.target.value));
+        function closeModal() { document.getElementById('detailModal').style.display = "none"; }
         
-        render();
+        document.getElementById('searchInput').addEventListener('input', render);
+        
+        // 起動！
+        loadData();
     </script>
 </body>
 </html>
