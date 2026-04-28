@@ -3,65 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シャーペン DB & シミュレーター</title>
+    <title>SHARPEN - THE DB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6; color: #1a1a1a; }
-        /* 価格帯別のカードデザイン */
-        .card-standard { border-color: #000; }
-        .card-mid { border-color: #2563eb; background: #f0f7ff; } /* 2000円〜 */
-        .card-high { border-color: #d4af37; background: #fffdf0; box-shadow: 4px 4px 0px #d4af37; } /* 5000円〜 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { font-family: 'Inter', 'Hiragino Kaku Gothic ProN', sans-serif; background-color: #0f1115; color: #e5e7eb; }
         
-        .sharp-card { border: 2px solid; transition: 0.2s; position: relative; min-height: 160px; display: flex; flex-direction: column; background-color: white; }
-        .sharp-card:hover { transform: translate(-4px, -4px); box-shadow: 6px 6px 0px #000; }
-        .filter-btn { border: 2px solid #000; background: white; padding: 6px 12px; font-size: 11px; font-weight: 900; cursor: pointer; }
-        .filter-btn.active { background: #000; color: #fff; }
-        #detailModal, #simModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-        .badge { position: absolute; top: 0; font-size: 8px; font-weight: 900; padding: 2px 6px; z-index: 5; }
-        .fav-btn { position: absolute; bottom: 10px; right: 10px; cursor: pointer; font-size: 20px; filter: grayscale(1); transition: 0.2s; }
-        .fav-btn.active { filter: grayscale(0); transform: scale(1.2); }
+        /* カードデザイン */
+        .sharp-card { background: #1f2937; border: 1px solid #374151; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; border-radius: 12px; overflow: hidden; }
+        .sharp-card:hover { transform: translateY(-5px); border-color: #60a5fa; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+        
+        /* お気に入り星マーク */
+        .fav-star { font-size: 24px; cursor: pointer; transition: 0.3s; color: #4b5563; }
+        .fav-star.active { color: #fbbf24; filter: drop-shadow(0 0 5px #fbbf24); }
+
+        /* 絞り込みパネル */
+        #filterPanel { display: none; background: #111827; border-bottom: 2px solid #3b82f6; }
+        
+        /* 筆箱シミュレーター風表示 */
+        .pencase-slot { background: #111827; border: 2px dashed #374151; border-radius: 15px; height: 120px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 10px; font-weight: 900; }
+
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f1115; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     </style>
 </head>
 <body class="pb-20">
 
-    <header class="bg-white border-b-4 border-black sticky top-0 z-50 p-4">
+    <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50 p-6">
         <div class="max-w-7xl mx-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h1 class="text-3xl font-black italic cursor-pointer" onclick="location.reload()">シャーペン <span class="text-red-600">DB</span></h1>
-                <button onclick="openSimulator()" class="bg-black text-white px-4 py-2 font-black text-xs hover:bg-red-600 transition">筆箱シミュレーターを開く</button>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <h1 class="text-4xl font-black tracking-tighter italic">SHARPEN<span class="text-blue-500">DB</span></h1>
+                
+                <div class="flex w-full md:w-2/3 gap-2">
+                    <input type="text" id="searchInput" placeholder="Search models, makers..." 
+                           class="flex-grow bg-gray-800 border border-gray-700 rounded-lg p-4 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-white">
+                    <button onclick="toggleFilter()" class="bg-gray-800 border border-gray-700 px-6 rounded-lg font-black text-sm hover:bg-gray-700 transition flex items-center gap-2">
+                        <span>FILTER</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                </div>
             </div>
-            <div class="flex flex-wrap gap-2 overflow-x-auto pb-2">
-                <button onclick="filterByTag('すべて')" class="filter-btn active">すべて</button>
-                <button onclick="filterByTag('しーさー')" class="filter-btn text-yellow-600 border-yellow-600">しーさー</button>
-                <button onclick="filterByTag('筆箱')" class="filter-btn text-amber-800 border-amber-800">筆箱</button>
-                <button onclick="filterByTag('高級')" class="filter-btn text-yellow-700 border-yellow-700">高級クラス</button>
+
+            <div id="filterPanel" class="mt-6 p-6 rounded-xl">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Category</p>
+                        <div class="flex flex-wrap gap-2" id="cat-filters">
+                            <button onclick="setFilter('すべて')" class="filter-tag active bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">すべて</button>
+                            <button onclick="setFilter('しーさー')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">しーさー</button>
+                            <button onclick="setFilter('筆箱')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">筆箱</button>
+                            <button onclick="setFilter('消しゴム')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">消しゴム</button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Status</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="setFilter('限定色')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">限定</button>
+                            <button onclick="setFilter('廃番')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">廃番</button>
+                            <button onclick="setFilter('伝説')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">伝説</button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Special</p>
+                        <button onclick="showFavorites()" class="w-full bg-yellow-500 text-black font-black py-2 rounded text-xs">MY PEN CASE (★)</button>
+                    </div>
+                </div>
             </div>
-            <input type="text" id="searchInput" placeholder="モデル名で検索..." class="w-full border-2 border-black p-3 mt-4 font-bold outline-none focus:bg-yellow-50">
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-4 mt-8">
-        <div id="loading" class="text-center py-20 font-black italic text-gray-400">LOADING...</div>
-        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+    <main class="max-w-7xl mx-auto p-6">
+        <div id="simulatorArea" class="hidden mb-12">
+            <h2 class="text-2xl font-black mb-6 italic text-yellow-500">MY PEN CASE SIMULATOR</h2>
+            <div id="pencase-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-4"></div>
+            <div class="mt-4 text-[10px] text-gray-500 font-bold">※お気に入りしたペンが自動的にスタメン入りします（最大10本）</div>
+        </div>
+
+        <div id="loading" class="text-center py-20 font-black text-gray-600 animate-pulse">SYNCHRONIZING DB...</div>
+        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
     </main>
-
-    <div id="simModal" onclick="closeSim()">
-        <div class="bg-white max-w-4xl w-full p-8 relative shadow-[10px_10px_0px_#000] max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-            <h2 class="text-3xl font-black italic mb-6 border-b-4 border-black pb-2">MY PEN CASE</h2>
-            <p class="text-xs font-bold mb-4">⭐ お気に入りしたペンがここに並びます（最大10本）</p>
-            <div id="pencase-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-4 bg-gray-200 p-6 rounded-xl border-4 border-dashed border-gray-400">
-                </div>
-            <button onclick="closeSim()" class="mt-8 w-full bg-black text-white py-4 font-black">閉じる</button>
-        </div>
-    </div>
-
-    <div id="detailModal" onclick="closeModal()">
-        <div class="bg-white max-w-2xl w-full p-8 relative shadow-[10px_10px_0px_#333]" onclick="event.stopPropagation()">
-            <p id="m-maker" class="text-xs font-black text-blue-600 uppercase mb-1"></p>
-            <h2 id="m-title" class="text-2xl font-black italic mb-4"></h2>
-            <div class="bg-gray-100 p-6 border-2 border-black whitespace-pre-wrap font-bold text-sm" id="m-desc"></div>
-        </div>
-    </div>
 
     <script>
         const SPREADSHEET_ID = '1EouOo6sNYzOLsOgqP1HLNLq9-MZdX-p1owDIFr-kBF0';
@@ -87,27 +109,40 @@
                     let desc = (cols[3] || "").replace(/"/g, '').trim();
 
                     const baseName = fullName.split(/[（(]/)[0].trim();
-                    const colorMatch = fullName.match(/[（(](.*?)[）)]/);
-                    const colorName = colorMatch ? colorMatch[1] : "";
+                    const color = fullName.match(/[（(](.*?)[）)]/)?.[1] || "";
 
                     if (!merged[baseName]) {
                         merged[baseName] = { name: baseName, maker, tags: new Set(tags), desc, colors: new Set() };
                     }
-                    if (colorName) merged[baseName].colors.add(colorName);
+                    if (color) merged[baseName].colors.add(color);
                     tags.forEach(t => merged[baseName].tags.add(t));
                 });
 
                 allProducts = Object.values(merged).map(p => ({
-                    ...p,
-                    tags: Array.from(p.tags),
-                    displayDesc: p.colors.size > 0 ? `【色: ${Array.from(p.colors).join(' / ')}】\n\n${p.desc}` : p.desc
+                    ...p, tags: Array.from(p.tags),
+                    displayDesc: p.colors.size > 0 ? `【Colors: ${Array.from(p.colors).join(' / ')}】\n\n${p.desc}` : p.desc
                 }));
-
                 document.getElementById('loading').style.display = 'none';
                 render();
-            } catch (e) {
-                document.getElementById('loading').innerText = "ERROR";
-            }
+            } catch (e) { document.getElementById('loading').innerText = "CONNECTION ERROR"; }
+        }
+
+        function toggleFilter() {
+            const panel = document.getElementById('filterPanel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function setFilter(tag) {
+            currentFilter = tag;
+            document.getElementById('simulatorArea').classList.add('hidden');
+            render();
+        }
+
+        function showFavorites() {
+            currentFilter = 'FAV';
+            document.getElementById('simulatorArea').classList.remove('hidden');
+            updateSimulator();
+            render();
         }
 
         function toggleFav(name, event) {
@@ -115,68 +150,47 @@
             if(favorites.includes(name)) {
                 favorites = favorites.filter(f => f !== name);
             } else {
-                if(favorites.length >= 10) { alert("筆箱がいっぱいです！"); return; }
+                if(favorites.length >= 10) return;
                 favorites.push(name);
             }
             localStorage.setItem('penFavs', JSON.stringify(favorites));
+            updateSimulator();
             render();
         }
 
-        function filterByTag(tag) {
-            currentFilter = tag;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.innerText === tag));
-            render();
-        }
-
-        function getCardClass(tags) {
-            if (tags.includes('高級') || tags.includes('伝説')) return 'card-high';
-            if (tags.includes('製図') || tags.includes('木軸')) return 'card-mid';
-            return 'card-standard';
+        function updateSimulator() {
+            const grid = document.getElementById('pencase-grid');
+            grid.innerHTML = Array.from({length: 10}).map((_, i) => {
+                const name = favorites[i];
+                return `<div class="pencase-slot">${name ? name : '+ EMPTY'}</div>`;
+            }).join('');
         }
 
         function render() {
             const list = document.getElementById('productList');
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allProducts.filter(p => {
-                const matchesSearch = (p.name + p.maker + p.displayDesc).toLowerCase().includes(query);
-                const matchesTag = currentFilter === 'すべて' || p.tags.includes(currentFilter);
-                return matchesSearch && matchesTag;
+                const matchesSearch = (p.name + p.maker).toLowerCase().includes(query);
+                if (currentFilter === 'FAV') return matchesSearch && favorites.includes(p.name);
+                return matchesSearch && (currentFilter === 'すべて' || p.tags.includes(currentFilter));
             });
 
             list.innerHTML = filtered.map(p => {
                 const isFav = favorites.includes(p.name);
-                const cardStyle = getCardClass(p.tags);
                 return `
-                <div class="sharp-card p-6 cursor-pointer ${cardStyle}" onclick="openDetail('${encodeURIComponent(p.name)}')">
-                    ${p.tags.includes('限定色') ? '<div class="badge left-0 bg-red-600 text-white">LIMITED</div>' : ''}
-                    ${p.tags.includes('しーさー') ? '<div class="badge right-0 bg-yellow-400 text-black">SEASAR</div>' : ''}
-                    <p class="text-[9px] font-black text-blue-600 uppercase mb-1">${p.maker}</p>
-                    <h3 class="text-sm font-black italic mb-4 border-b border-gray-200 pb-1">${p.name}</h3>
-                    <div class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav('${p.name}', event)">★</div>
+                <div class="sharp-card p-5">
+                    <div class="flex justify-between items-start mb-4">
+                        <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">${p.maker}</p>
+                        <span onclick="toggleFav('${p.name}', event)" class="fav-star ${isFav ? 'active' : ''}">★</span>
+                    </div>
+                    <h3 class="text-lg font-bold leading-tight mb-4">${p.name}</h3>
+                    <div class="flex flex-wrap gap-1">
+                        ${p.tags.slice(0, 3).map(t => `<span class="text-[8px] px-2 py-0.5 bg-gray-800 text-gray-400 font-bold rounded">${t}</span>`).join('')}
+                    </div>
                 </div>`;
             }).join('');
         }
 
-        function openSimulator() {
-            const grid = document.getElementById('pencase-grid');
-            grid.innerHTML = favorites.length ? favorites.map(fav => `
-                <div class="bg-white p-2 border-2 border-black text-[10px] font-black text-center h-24 flex flex-col justify-center shadow-md">
-                    ${fav}
-                </div>
-            `).join('') : '<p class="col-span-full text-center py-10 font-bold text-gray-500">ペンがありません</p>';
-            document.getElementById('simModal').style.display = "flex";
-        }
-
-        function openDetail(name) {
-            const p = allProducts.find(item => item.name === decodeURIComponent(name));
-            document.getElementById('m-title').innerText = p.name;
-            document.getElementById('m-maker').innerText = p.maker;
-            document.getElementById('m-desc').innerText = p.displayDesc;
-            document.getElementById('detailModal').style.display = "flex";
-        }
-
-        function closeSim() { document.getElementById('simModal').style.display = "none"; }
-        function closeModal() { document.getElementById('detailModal').style.display = "none"; }
         document.getElementById('searchInput').addEventListener('input', render);
         loadData();
     </script>
