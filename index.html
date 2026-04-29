@@ -2,108 +2,128 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文房具検索サイト | SHARPEN DB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #f0f4f8; color: #1e293b; font-family: 'Segoe UI', sans-serif; }
-        .hero-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%); }
-        .sharp-card { background: white; border-radius: 16px; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .sharp-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .latest-news { background: #fff; border-left: 5px solid #3b82f6; animation: slideIn 0.5s ease-out; }
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        body { background: #f8fafc; color: #1e293b; font-family: 'Inter', sans-serif; }
+        .hero-gradient { background: linear-gradient(135deg, #0ea5e9 0%, #2dd4bf 100%); }
+        .sharp-card { background: white; border-radius: 20px; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid #e2e8f0; }
+        .sharp-card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); border-color: #0ea5e9; }
+        .tag-btn { transition: 0.2s; border: 1px solid #e2e8f0; }
+        .tag-btn:hover { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+        .tag-active { background: #0ea5e9 !important; color: white !important; border-color: #0ea5e9 !important; }
+        .news-banner { background: white; border-left: 6px solid #0ea5e9; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
-    <div class="max-w-5xl mx-auto mt-6 px-4">
-        <div class="latest-news p-4 shadow-sm rounded-r-lg">
-            <span class="text-blue-600 font-black text-xs uppercase tracking-widest">Latest Info</span>
-            <p id="newsTicker" class="text-sm font-bold text-gray-700 mt-1">
-                【2026/04】クルトガダイブ新色「ムーンライト」入荷情報を追加しました！
-            </p>
+    <div class="max-w-6xl mx-auto mt-6 px-4">
+        <div class="news-banner p-5 rounded-r-2xl overflow-hidden relative">
+            <div class="flex items-center gap-3">
+                <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">News</span>
+                <p id="latestNews" class="text-sm font-bold text-slate-700">最新情報：スプレッドシート連動完了！全500件順次公開中。</p>
+            </div>
         </div>
     </div>
 
-    <header class="p-8 text-center">
-        <h1 class="text-5xl font-black italic tracking-tighter text-transparent bg-clip-text hero-gradient">STATIONERY SEARCH</h1>
-        <div class="mt-6 flex justify-center gap-4 bg-blue-500 text-white p-4 rounded-full max-w-md mx-auto font-black shadow-lg">
-            合計金額: <span id="totalPrice">¥0</span>
+    <header class="py-12 text-center">
+        <h1 class="text-6xl font-black tracking-tighter text-transparent bg-clip-text hero-gradient mb-4 italic">文房具検索サイト</h1>
+        <p class="text-slate-400 font-bold mb-8">THE ULTIMATE STATIONERY DATABASE</p>
+        <div class="inline-flex items-center gap-4 bg-slate-900 text-white px-8 py-4 rounded-full font-black shadow-2xl">
+            <span class="text-blue-400">FAV TOTAL:</span>
+            <span id="totalPrice" class="text-2xl">¥0</span>
         </div>
     </header>
 
-    <div class="max-w-5xl mx-auto px-4 mb-8">
-        <input type="text" id="search" placeholder="名前やメーカーで検索..." class="w-full p-5 rounded-2xl border-none shadow-inner bg-white text-lg outline-none focus:ring-4 ring-blue-200">
-        
-        <div class="flex flex-wrap gap-2 mt-4" id="tags">
-            </div>
+    <div class="max-w-6xl mx-auto px-4 sticky top-4 z-50">
+        <div class="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white/20">
+            <input type="text" id="search" placeholder="アイテム名、ブランドで爆速検索..." 
+                   class="w-full p-4 rounded-2xl bg-slate-100 border-none outline-none focus:ring-2 ring-blue-400 font-bold">
+            <div class="flex flex-wrap gap-2 mt-4" id="tagList">
+                </div>
+        </div>
     </div>
 
-    <main class="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="list"></main>
+    <main class="max-w-6xl mx-auto px-4 mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="productGrid">
+        </main>
 
     <script>
-        const SPREADSHEET_ID = 'あなたのID';
+        const SPREADSHEET_ID = 'あなたのスプレッドシートID';
         const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`;
         
-        let products = [];
-        let favs = [];
-        const targetTags = ["限定色","0.3","0.5","0.7","低重心","六角","木軸","1000円以下","自動心出し","海外","筆箱","その他の文房具","しーさー","ダブルノック","フレフレ搭載","製図用","クルトガ","高級(5000円以上)"];
+        let allItems = [];
+        let favList = [];
+        let activeTag = '';
+        const tags = ["限定色","0.3","0.5","0.7","低重心","六角","木軸","1000円以下","自動心出し","海外","筆箱","その他の文房具","しーさー","ダブルノック","フレフレ搭載","製図用","クルトガ","高級(5000円以上)"];
 
-        async function init() {
-            const res = await fetch(CSV_URL);
-            const data = await res.text();
-            const rows = data.split('\n').slice(1);
-            products = rows.map(r => {
-                const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                return { name: c[0], maker: c[1], tags: c[2]?.replace(/"/g,'').split(',').map(t=>t.trim()), desc: c[3], url: c[4], price: parseInt(c[5]) || 0 };
-            });
-            render();
-            renderTags();
+        async function fetchData() {
+            try {
+                const res = await fetch(CSV_URL);
+                const text = await res.text();
+                const rows = text.split('\n').slice(1);
+                allItems = rows.map(row => {
+                    const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(c.length < 5) return null;
+                    return {
+                        name: c[0].replace(/"/g,''),
+                        maker: c[1].replace(/"/g,''),
+                        tags: c[2].replace(/"/g,'').split(',').map(t=>t.trim()),
+                        desc: c[3].replace(/"/g,''),
+                        url: c[4].replace(/"/g,''),
+                        price: parseInt(c[5]) || 0
+                    };
+                }).filter(i => i !== null);
+                render();
+                renderTags();
+            } catch (e) { console.error("データ読み込みエラー", e); }
         }
 
-        function render(filterTag = '') {
+        function render() {
             const query = document.getElementById('search').value.toLowerCase();
-            const html = products.filter(p => {
-                const match = p.name?.toLowerCase().includes(query) || p.maker?.toLowerCase().includes(query);
-                const tagMatch = filterTag ? p.tags?.includes(filterTag) : true;
-                return match && tagMatch;
-            }).map(p => `
-                <div class="sharp-card p-6 flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-start">
-                            <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${p.maker}</span>
-                            <button onclick="toggleFav('${p.name}', ${p.price})" class="text-2xl">${favs.includes(p.name) ? '⭐' : '☆'}</button>
-                        </div>
-                        <h2 class="text-xl font-black mt-2 text-slate-800">${p.name}</h2>
-                        <div class="flex flex-wrap gap-1 mt-2">
-                            ${p.tags?.map(t => `<span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded font-bold">${t}</span>`).join('')}
-                        </div>
-                        <p class="text-sm text-gray-500 mt-4 leading-relaxed">${p.desc}</p>
+            const filtered = allItems.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(query) || item.maker.toLowerCase().includes(query);
+                const matchTag = activeTag ? item.tags.includes(activeTag) : true;
+                return matchSearch && matchTag;
+            });
+
+            document.getElementById('productGrid').innerHTML = filtered.map(item => `
+                <div class="sharp-card p-8 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded">${item.maker}</span>
+                        <button onclick="toggleFav('${item.name}')" class="text-2xl transition hover:scale-125">
+                            ${favList.includes(item.name) ? '💙' : '🤍'}
+                        </button>
                     </div>
-                    <div class="mt-6 flex justify-between items-end">
-                        <span class="text-2xl font-black text-slate-900">¥${p.price.toLocaleString()}</span>
-                        <a href="${p.url}" target="_blank" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-600 transition">DETAIL</a>
+                    <h2 class="text-2xl font-black text-slate-800 mb-2">${item.name}</h2>
+                    <div class="flex flex-wrap gap-1 mb-4">
+                        ${item.tags.map(t => `<span class="text-[9px] font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full">#${t}</span>`).join('')}
+                    </div>
+                    <p class="text-sm text-slate-500 font-medium leading-relaxed flex-grow">${item.desc}</p>
+                    <div class="mt-8 flex justify-between items-center">
+                        <span class="text-3xl font-black text-slate-900 italic">¥${item.price.toLocaleString()}</span>
+                        <a href="${item.url}" target="_blank" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-xs font-black hover:bg-blue-500 transition shadow-lg">GO SHOP</a>
                     </div>
                 </div>
             `).join('');
-            document.getElementById('list').innerHTML = html;
         }
 
-        function toggleFav(name, price) {
-            if(favs.includes(name)) favs = favs.filter(n => n !== name);
-            else favs.push(name);
-            const total = products.filter(p => favs.includes(p.name)).reduce((a, b) => a + b.price, 0);
+        function toggleFav(name) {
+            if(favList.includes(name)) favList = favList.filter(n => n !== name);
+            else favList.push(name);
+            const total = allItems.filter(i => favList.includes(i.name)).reduce((sum, i) => sum + i.price, 0);
             document.getElementById('totalPrice').innerText = `¥${total.toLocaleString()}`;
             render();
         }
 
         function renderTags() {
-            document.getElementById('tags').innerHTML = targetTags.map(t => `
-                <button onclick="render('${t}')" class="bg-white border border-slate-200 px-4 py-2 rounded-full text-xs font-bold hover:bg-blue-500 hover:text-white transition shadow-sm">${t}</button>
-            `).join('') + `<button onclick="render()" class="bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold">ALL</button>`;
+            document.getElementById('tagList').innerHTML = `<button onclick="setTag('')" class="tag-btn bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-black ${activeTag===''?'tag-active':''}">ALL</button>` + 
+                tags.map(t => `<button onclick="setTag('${t}')" class="tag-btn bg-white px-4 py-2 rounded-full text-[10px] font-black ${activeTag===t?'tag-active':''}">#${t.toUpperCase()}</button>`).join('');
         }
 
-        document.getElementById('search').addEventListener('input', () => render());
-        init();
+        function setTag(t) { activeTag = t; renderTags(); render(); }
+        document.getElementById('search').addEventListener('input', render);
+        fetchData();
     </script>
 </body>
 </html>
