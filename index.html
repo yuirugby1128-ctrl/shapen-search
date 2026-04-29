@@ -2,88 +2,85 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHARPEN - THE DB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SHARPEN SPEC DB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
-        body { font-family: 'Inter', 'Hiragino Kaku Gothic ProN', sans-serif; background-color: #0f1115; color: #e5e7eb; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0d0f14; color: #f3f4f6; }
         
-        /* カードデザイン */
-        .sharp-card { background: #1f2937; border: 1px solid #374151; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; border-radius: 12px; overflow: hidden; }
-        .sharp-card:hover { transform: translateY(-5px); border-color: #60a5fa; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+        .sharp-card { background: #1a1d24; border: 1px solid #2d333d; border-radius: 12px; transition: 0.2s; }
+        .sharp-card:active { background: #252a33; transform: scale(0.98); }
         
-        /* お気に入り星マーク */
-        .fav-star { font-size: 24px; cursor: pointer; transition: 0.3s; color: #4b5563; }
+        /* お気に入り星 */
+        .fav-star { font-size: 24px; transition: 0.3s; color: #374151; }
         .fav-star.active { color: #fbbf24; filter: drop-shadow(0 0 5px #fbbf24); }
 
-        /* 絞り込みパネル */
-        #filterPanel { display: none; background: #111827; border-bottom: 2px solid #3b82f6; }
+        /* スマホナビ */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(26, 29, 36, 0.95); backdrop-filter: blur(8px); border-top: 1px solid #2d333d; display: flex; justify-content: space-around; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); z-index: 100; }
         
-        /* 筆箱シミュレーター風表示 */
-        .pencase-slot { background: #111827; border: 2px dashed #374151; border-radius: 15px; height: 120px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 10px; font-weight: 900; }
+        .pencase-slot { background: #0d0f14; border: 2px dashed #374151; border-radius: 8px; height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; padding: 4px; font-weight: bold; }
+        .pencase-slot.filled { border: 1px solid #3b82f6; background: #1e293b; color: white; }
 
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f1115; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        #filterModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: flex-end; }
+        .modal-content { background: #1a1d24; width: 100%; border-radius: 24px 24px 0 0; padding: 24px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
-    <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50 p-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                <h1 class="text-4xl font-black tracking-tighter italic">SHARPEN<span class="text-blue-500">DB</span></h1>
-                
-                <div class="flex w-full md:w-2/3 gap-2">
-                    <input type="text" id="searchInput" placeholder="Search models, makers..." 
-                           class="flex-grow bg-gray-800 border border-gray-700 rounded-lg p-4 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-white">
-                    <button onclick="toggleFilter()" class="bg-gray-800 border border-gray-700 px-6 rounded-lg font-black text-sm hover:bg-gray-700 transition flex items-center gap-2">
-                        <span>FILTER</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div id="filterPanel" class="mt-6 p-6 rounded-xl">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Category</p>
-                        <div class="flex flex-wrap gap-2" id="cat-filters">
-                            <button onclick="setFilter('すべて')" class="filter-tag active bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">すべて</button>
-                            <button onclick="setFilter('しーさー')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">しーさー</button>
-                            <button onclick="setFilter('筆箱')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">筆箱</button>
-                            <button onclick="setFilter('消しゴム')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">消しゴム</button>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Status</p>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="setFilter('限定色')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">限定</button>
-                            <button onclick="setFilter('廃番')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">廃番</button>
-                            <button onclick="setFilter('伝説')" class="filter-tag bg-gray-800 px-3 py-1 rounded text-xs font-bold">伝説</button>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-500 mb-2 uppercase">Special</p>
-                        <button onclick="showFavorites()" class="w-full bg-yellow-500 text-black font-black py-2 rounded text-xs">MY PEN CASE (★)</button>
-                    </div>
-                </div>
-            </div>
+    <header class="p-6 max-w-7xl mx-auto">
+        <h1 class="text-3xl font-black italic tracking-tighter">SHARPEN <span class="text-blue-500">SPEC</span></h1>
+        <div class="mt-4">
+            <input type="text" id="searchInput" placeholder="名前や特徴で検索..." 
+                   class="w-full bg-[#1a1d24] border border-[#2d333d] rounded-xl p-4 text-white font-bold focus:border-blue-500 outline-none transition">
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-6">
-        <div id="simulatorArea" class="hidden mb-12">
-            <h2 class="text-2xl font-black mb-6 italic text-yellow-500">MY PEN CASE SIMULATOR</h2>
-            <div id="pencase-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-4"></div>
-            <div class="mt-4 text-[10px] text-gray-500 font-bold">※お気に入りしたペンが自動的にスタメン入りします（最大10本）</div>
+    <main class="max-w-7xl mx-auto px-6">
+        <div id="pencaseArea" class="hidden mb-8 p-4 bg-[#1a1d24] rounded-2xl border border-blue-900/30">
+            <h2 class="text-xs font-black text-blue-400 mb-3 tracking-widest uppercase">My Pen Case</h2>
+            <div id="pencase-grid" class="grid grid-cols-5 gap-2"></div>
         </div>
 
-        <div id="loading" class="text-center py-20 font-black text-gray-600 animate-pulse">SYNCHRONIZING DB...</div>
-        <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        <div id="loading" class="text-center py-20 font-black text-gray-700 animate-pulse">SPEC SYNCING...</div>
+        <div id="productList" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </main>
+
+    <div id="filterModal" onclick="closeFilter()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
+            <h3 class="text-xl font-black mb-6">絞り込み検索</h3>
+            
+            <p class="text-[10px] font-black text-gray-500 mb-3 uppercase tracking-widest">実用的カテゴリー</p>
+            <div class="grid grid-cols-2 gap-2 mb-8">
+                <button onclick="applyFilter('木軸')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">🌲 木軸</button>
+                <button onclick="applyFilter('六角')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">⬢ 六角軸</button>
+                <button onclick="applyFilter('低重心')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">⚓ 低重心</button>
+                <button onclick="applyFilter('自動芯出し')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">⚙️ 自動芯出し</button>
+                <button onclick="applyFilter('製図')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">📐 製図用</button>
+                <button onclick="applyFilter('ダブルノック')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">🔄 ダブルノック</button>
+                <button onclick="applyFilter('太軸')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">🖊️ 太軸</button>
+                <button onclick="applyFilter('筆箱')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">💼 筆箱</button>
+                <button onclick="applyFilter('しーさー')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold">🦁 しーさー</button>
+                <button onclick="applyFilter('限定色')" class="bg-gray-800 py-3 rounded-xl text-xs font-bold text-red-400">✨ 限定色</button>
+            </div>
+            
+            <button onclick="applyFilter('すべて')" class="w-full bg-blue-600 py-4 rounded-xl font-black text-sm mb-4">リセット</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button onclick="applyFilter('すべて')" class="flex flex-col items-center">
+            <span class="text-[10px] font-bold">HOME</span>
+        </button>
+        <button onclick="openFilter()" class="flex flex-col items-center">
+            <span class="text-[10px] font-bold text-blue-400">FILTER</span>
+        </button>
+        <button onclick="togglePencase()" class="flex flex-col items-center">
+            <span class="text-[10px] font-bold text-yellow-500">CASE</span>
+        </button>
+    </nav>
 
     <script>
         const SPREADSHEET_ID = '1EouOo6sNYzOLsOgqP1HLNLq9-MZdX-p1owDIFr-kBF0';
@@ -103,44 +100,37 @@
                 rows.forEach(row => {
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (cols.length < 2) return;
-                    let fullName = (cols[0] || "").replace(/"/g, '').trim();
+                    let name = (cols[0] || "").replace(/"/g, '').trim();
                     let maker = (cols[1] || "").replace(/"/g, '').trim();
                     let tags = (cols[2] || "").replace(/"/g, '').split(',').map(t => t.trim());
-                    let desc = (cols[3] || "").replace(/"/g, '').trim();
 
-                    const baseName = fullName.split(/[（(]/)[0].trim();
-                    const color = fullName.match(/[（(](.*?)[）)]/)?.[1] || "";
-
+                    const baseName = name.split(/[（(]/)[0].trim();
                     if (!merged[baseName]) {
-                        merged[baseName] = { name: baseName, maker, tags: new Set(tags), desc, colors: new Set() };
+                        merged[baseName] = { name: baseName, maker, tags: new Set(tags) };
                     }
-                    if (color) merged[baseName].colors.add(color);
                     tags.forEach(t => merged[baseName].tags.add(t));
                 });
 
-                allProducts = Object.values(merged).map(p => ({
-                    ...p, tags: Array.from(p.tags),
-                    displayDesc: p.colors.size > 0 ? `【Colors: ${Array.from(p.colors).join(' / ')}】\n\n${p.desc}` : p.desc
-                }));
+                allProducts = Object.values(merged).map(p => ({ ...p, tags: Array.from(p.tags) }));
                 document.getElementById('loading').style.display = 'none';
                 render();
-            } catch (e) { document.getElementById('loading').innerText = "CONNECTION ERROR"; }
+            } catch (e) { document.getElementById('loading').innerText = "ERROR"; }
         }
 
-        function toggleFilter() {
-            const panel = document.getElementById('filterPanel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function setFilter(tag) {
+        function openFilter() { document.getElementById('filterModal').style.display = 'flex'; }
+        function closeFilter() { document.getElementById('filterModal').style.display = 'none'; }
+        
+        function applyFilter(tag) {
             currentFilter = tag;
-            document.getElementById('simulatorArea').classList.add('hidden');
+            document.getElementById('pencaseArea').classList.add('hidden');
+            closeFilter();
             render();
         }
 
-        function showFavorites() {
-            currentFilter = 'FAV';
-            document.getElementById('simulatorArea').classList.remove('hidden');
+        function togglePencase() {
+            const area = document.getElementById('pencaseArea');
+            area.classList.toggle('hidden');
+            currentFilter = area.classList.contains('hidden') ? 'すべて' : 'FAV';
             updateSimulator();
             render();
         }
@@ -162,7 +152,7 @@
             const grid = document.getElementById('pencase-grid');
             grid.innerHTML = Array.from({length: 10}).map((_, i) => {
                 const name = favorites[i];
-                return `<div class="pencase-slot">${name ? name : '+ EMPTY'}</div>`;
+                return `<div class="pencase-slot ${name ? 'filled' : ''}">${name ? name : ''}</div>`;
             }).join('');
         }
 
@@ -178,21 +168,23 @@
             list.innerHTML = filtered.map(p => {
                 const isFav = favorites.includes(p.name);
                 return `
-                <div class="sharp-card p-5">
-                    <div class="flex justify-between items-start mb-4">
-                        <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">${p.maker}</p>
-                        <span onclick="toggleFav('${p.name}', event)" class="fav-star ${isFav ? 'active' : ''}">★</span>
+                <div class="sharp-card p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <p class="text-[8px] font-bold text-gray-500 uppercase">${p.maker}</p>
+                            <span onclick="toggleFav('${p.name}', event)" class="fav-star ${isFav ? 'active' : ''}">★</span>
+                        </div>
+                        <h3 class="text-[13px] font-bold mt-1 leading-tight">${p.name}</h3>
                     </div>
-                    <h3 class="text-lg font-bold leading-tight mb-4">${p.name}</h3>
-                    <div class="flex flex-wrap gap-1">
-                        ${p.tags.slice(0, 3).map(t => `<span class="text-[8px] px-2 py-0.5 bg-gray-800 text-gray-400 font-bold rounded">${t}</span>`).join('')}
+                    <div class="flex flex-wrap gap-1 mt-4">
+                        ${p.tags.slice(0, 2).map(t => `<span class="text-[7px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded">${t}</span>`).join('')}
                     </div>
                 </div>`;
             }).join('');
         }
 
-        document.getElementById('searchInput').addEventListener('input', render);
-        loadData();
+            document.getElementById('searchInput').addEventListener('input', render);
+            loadData();
     </script>
 </body>
 </html>
